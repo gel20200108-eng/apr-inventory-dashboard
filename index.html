@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>库存监控预警看板 | Apple APR</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #0f172a;
@@ -20,7 +19,7 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
@@ -32,10 +31,8 @@
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
   }
-  .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
-  .header .subtitle { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
-  .header .update-time { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
-
+  .header h1 { font-size: 28px; font-weight: 700; }
+  .header .sub { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -47,17 +44,14 @@
     border-radius: 12px;
     padding: 20px;
     border: 1px solid var(--border);
-    transition: transform 0.2s, background 0.2s;
   }
-  .card:hover { background: var(--card-hover); transform: translateY(-2px); }
-  .card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
   .card .value { font-size: 28px; font-weight: 700; }
-  .card .value.danger { color: var(--danger); }
-  .card .value.warning { color: var(--warning); }
-  .card .value.success { color: var(--success); }
-  .card .value.info { color: var(--info); }
   .card .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-
+  .danger { color: var(--danger); }
+  .warning { color: var(--warning); }
+  .success { color: var(--success); }
+  .info { color: var(--info); }
   .section {
     background: var(--card);
     border-radius: 12px;
@@ -65,2475 +59,228 @@
     border: 1px solid var(--border);
     margin-bottom: 24px;
   }
-  .section h2 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .chart-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin-bottom: 24px;
-  }
-  .chart-container {
-    position: relative;
-    height: 280px;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
+  .section h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  table { width:100%; border-collapse: collapse; font-size: 13px; }
   th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-  th { font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  th { font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; }
   tr:hover { background: rgba(255,255,255,0.03); }
-  .tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .tag-danger { background: rgba(239,68,68,0.15); color: #ef4444; }
-  .tag-warning { background: rgba(245,158,11,0.15); color: #f59e0b; }
-  .tag-success { background: rgba(34,197,94,0.15); color: #22c55e; }
-  .tag-info { background: rgba(59,130,246,0.15); color: #3b82f6; }
-  .tag-darkred { background: rgba(153,27,27,0.3); color: #fca5a5; }
-  .tag-black { background: rgba(0,0,0,0.4); color: #9ca3af; }
-
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-  @media (max-width: 900px) {
-    .two-col { grid-template-columns: 1fr; }
-    .chart-grid { grid-template-columns: 1fr; }
-  }
-
-  .scroll-table {
-    max-height: 420px;
-    overflow-y: auto;
-  }
+  .scroll-table { max-height: 500px; overflow-y: auto; }
   .scroll-table::-webkit-scrollbar { width: 6px; }
   .scroll-table::-webkit-scrollbar-track { background: var(--bg); }
   .scroll-table::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  .kpi-row {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
+  .alert-box {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+    color: #fca5a5;
+    font-size: 14px;
+    line-height: 1.8;
   }
-  .kpi-pill {
-    background: rgba(255,255,255,0.05);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-  }
-  .kpi-pill .num { font-weight: 700; }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>库存监控预警看板</h1>
-  <div class="subtitle">Apple 授权经销商 · APR渠道 · 门店级预警（含不良品仓）</div>
-  <div class="update-time">库存截止: 2026-06-04 | 零售截止: 2026-06-04 | 覆盖 128 家门店 | 174 个型号</div>
+  <h1>📦 库存监控预警看板</h1>
+  <div class="sub">基于串码库龄表 · 良品仓重点分析 · 零售截止: 2026-06-04</div>
 </div>
 
-<!-- 今日重点：策略与工作方向 -->
-<div class="section" style="border-left: 4px solid #3b82f6; background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, var(--card) 50%);">
-  <h2>📌 今日重点</h2>
-  <div style="line-height:1.8;">
-    <div style="margin-bottom:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid #3b82f6;"><div style="line-height:1.7;color:#e2e8f0;">🔴 <strong>大盘告警</strong>：高危门店18家，库存结构严重失衡。建议本周召开区域经理紧急会议，逐店排查积压与缺货并存问题。</div></div>
-<div style="margin-bottom:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid #3b82f6;"><div style="line-height:1.7;color:#e2e8f0;">📦 <strong>全渠道缺货</strong>：平板1个型号全渠道缺货；手机2个型号全渠道缺货；手表7个型号全渠道缺货；电脑7个型号全渠道缺货。建议统一向苹果下单补货，无需区分区域。</div></div>
-<div style="margin-bottom:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid #3b82f6;"><div style="line-height:1.7;color:#e2e8f0;">📈 <strong>销量暴增预警</strong>：iPhone 17 Pro Max 256GB 蓝（近2周562台，环比+115%）；iPhone 17 Pro 256GB 蓝（近2周591台，环比+73%）；Watch SEries 11 深空灰（近2周593台，环比+61%）。请相关区域经理立即核查库存深度，防止断货。</div></div>
-<div style="margin-bottom:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid #3b82f6;"><div style="line-height:1.7;color:#e2e8f0;">⚠️ <strong>不良品仓</strong>：共783台(¥558.9万)，重灾区西北一区(154台)、西北三区(80台)、西北二区(74台)。问题最突出门店：西安荟聚店(西北一区) 不良品54台，请区域经理本周实地核查。</div></div>
-<div style="margin-bottom:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid #3b82f6;"><div style="line-height:1.7;color:#e2e8f0;">⏰ <strong>库龄告急</strong>：西安王府井百货熙地港店 iPhone 17 Pro Max 256GB 银(252天，¥423.4万)；重庆渝北SKLP店 iPhone 17 Pro Max 256GB 银(252天，¥389.2万)；郑州信万广场店 iPhone 17 Pro Max 256GB 银(252天，¥300.9万)。建议立即折价或报损，避免继续贬值。</div></div>
-<div style="margin-bottom:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid #3b82f6;"><div style="line-height:1.7;color:#e2e8f0;">📌 <strong>本周工作方向</strong>：</div><div style="margin-top:4px;padding-left:12px;color:#94a3b8;font-size:13px;">📋 本周走访重点：华南二区(3家)、四川区域(3家)、华南一区(2家)</div><div style="margin-top:4px;padding-left:12px;color:#94a3b8;font-size:13px;">📋 补货优先级：手表（7个型号缺货）</div><div style="margin-top:4px;padding-left:12px;color:#94a3b8;font-size:13px;">📋 不良品清库：本周目标消化156台</div></div>
-  </div>
+<div class="alert-box">
+  <strong>今日重点</strong><br>
+  <p>🔴 **大盘告警**：高危门店30家，库存结构严重失衡。建议本周召开区域经理紧急会议，逐店排查积压与缺货并存问题。</p>
+<p>📦 **全面紧缺**：电脑2个型号全渠道缺货。建议统一向苹果下单补货，无需区分区域。</p>
+<p>📈 **销量突增预警**：MYQY3FE/A（近2周2307台，环比+150%）；MG054CH/A（近2周562台，环比+115%）；MG8V4CH/A（近2周591台，环比+73%）。请相关区域经理立即核查库存深度，防止断货。</p>
+<p>📉 **积压关注**：MG6X4CH/A(积压1090台，¥620.5万)；MEVH4CH/B(积压1182台，¥347.8万)；MG074CH/A(积压87台，¥99.1万)。建议启动促销或搭售清库存，腾出资金和仓位。</p>
+<p>⚠️ **不良品仓**：共930台(¥568.2万)，平均库龄99.2天。建议尽快安排折价清库，避免继续贬值。</p>
+<p>⏰ **库龄告急**：西安大茂城店 英迈 MG3G4CH/A iPhone Air 1TB 天蓝色-20250910(228天，¥1.9万)；成都金牛万达广场店 英迈 MG0Q4CH/A iPhone 17 Pro Max 2TB 深蓝色-20250910(225天，¥1.7万)；贵阳国贸玖福城店 英迈 MG0Q4CH/A iPhone 17 Pro Max 2TB 深蓝色-20250910(244天，¥1.7万)。建议立即折价或报损，避免继续贬值。</p>
+<p>📌 **本周工作方向**：
+📋 本周走访重点：西北四区(4家)、云南区域(3家)、西北二区(3家)
+📋 不良品清库：本周目标消化186台</p>
+
 </div>
 
-<!-- 总体KPI -->
 <div class="grid">
   <div class="card">
-    <div class="label">总库存量</div>
-    <div class="value">59,508</div>
-    <div class="sub">台</div>
+    <div class="label">良品仓总库存</div>
+    <div class="value">96,434 台</div>
+    <div class="sub">金额 ¥41914.8万 · 128家门店</div>
   </div>
   <div class="card">
-    <div class="label">总库存金额</div>
-    <div class="value info">¥38979万</div>
-    <div class="sub">APR渠道</div>
+    <div class="label">库存可销周数预警</div>
+    <div class="value danger">1535 个危险</div>
+    <div class="sub">紧缺946 / 积压410 / 滞销179 / 关注642</div>
   </div>
   <div class="card">
-    <div class="label">周转异常</div>
-    <div class="value danger">1436</div>
-    <div class="sub">缺货/积压/零销</div>
+    <div class="label">门店风险等级</div>
+    <div class="value warning">30 家高危</div>
+    <div class="sub">中危34 / 低危51 / 正常13</div>
   </div>
   <div class="card">
-    <div class="label">周转关注</div>
-    <div class="value warning">379</div>
-    <div class="sub">偏离健康区间</div>
+    <div class="label">高库龄风险</div>
+    <div class="value danger">5,577 台</div>
+    <div class="sub">180天+ 高风险 / 1年+ 紧急 / 2年+ 报废</div>
   </div>
-  <div class="card">
-    <div class="label">周转健康</div>
-    <div class="value success">5738</div>
-    <div class="sub">库存周转正常</div>
-  </div>
-  <div class="card">
-    <div class="label">高危门店</div>
-    <div class="value danger">18</div>
-    <div class="sub">需立即干预</div>
-  </div>
-  <div class="card">
-    <div class="label">不良品仓</div>
-    <div class="value warning">783</div>
-    <div class="sub">¥558.9万 待消化</div>
-  </div>
+  
+        <div class="card">
+            <div class="label">不良品仓</div>
+            <div class="value">930 台</div>
+            <div class="sub">¥568.2万 · 平均库龄99.2天</div>
+        </div>
+        
+  
+        <div class="card">
+            <div class="label">其他仓（样机/在途等）</div>
+            <div class="value">12,496 台</div>
+            <div class="sub">¥6514.7万 · 占比13.3%</div>
+        </div>
+        
 </div>
 
-<!-- 图表区 -->
-<div class="chart-grid">
-  <div class="section">
-    <h2>WOS状态分布</h2>
-    <div class="chart-container">
-      <canvas id="wosChart"></canvas>
-    </div>
-    <div class="chart-note">周销库存覆盖数（WOS）= 现有库存量 ÷ 近4周周均销量｜WOS&lt;1为缺货风险，WOS&gt;8为积压风险</div>
-  </div>
-  <div class="section">
-    <h2>品类库存结构</h2>
-    <div class="chart-container">
-      <canvas id="categoryChart"></canvas>
-    </div>
-    <div class="chart-note">左轴：库存量（台）｜右轴：库存金额（万元）｜数据截止近4周</div>
-  </div>
-  <div class="section">
-    <h2>门店风险分布</h2>
-    <div class="chart-container">
-      <canvas id="storeRiskChart"></canvas>
-    </div>
-    <div class="chart-note">门店风险等级：高危（多维度评分≥55）｜中危（≥40）｜低危（≥25）｜基于缺货/零销/库龄综合评分</div>
-  </div>
-  <div class="section">
-    <h2>库龄预警分布</h2>
-    <div class="chart-container">
-      <canvas id="agingChart"></canvas>
-    </div>
-    <div class="chart-note">库龄=当前日期－型号上市日期｜180天+为高风险｜365天+建议报废处理</div>
-  </div>
-</div>
-
-<!-- 区域汇总 -->
 <div class="section">
-  <h2>区域库存健康度</h2>
-  <div class="grid">
-    <div class="card">
-    <div class="label">云南区域</div>
-    <div class="value info">4,945台</div>
-    <div class="sub">WOS中位数 2.0周 | 高危116 | 库龄风险4,663台</div>
-  </div><div class="card">
-    <div class="label">西北二区</div>
-    <div class="value info">4,989台</div>
-    <div class="sub">WOS中位数 2.0周 | 高危108 | 库龄风险4,782台</div>
-  </div><div class="card">
-    <div class="label">贵州区域</div>
-    <div class="value info">2,956台</div>
-    <div class="sub">WOS中位数 2.0周 | 高危67 | 库龄风险2,782台</div>
-  </div><div class="card">
-    <div class="label">华南二区</div>
-    <div class="value info">3,518台</div>
-    <div class="sub">WOS中位数 2.0周 | 高危133 | 库龄风险3,324台</div>
-  </div><div class="card">
-    <div class="label">华南一区</div>
-    <div class="value info">2,849台</div>
-    <div class="sub">WOS中位数 1.8周 | 高危113 | 库龄风险2,695台</div>
-  </div><div class="card">
-    <div class="label">河南区域</div>
-    <div class="value info">6,885台</div>
-    <div class="sub">WOS中位数 1.7周 | 高危119 | 库龄风险6,696台</div>
-  </div><div class="card">
-    <div class="label">西北一区</div>
-    <div class="value info">3,159台</div>
-    <div class="sub">WOS中位数 1.7周 | 高危91 | 库龄风险3,034台</div>
-  </div><div class="card">
-    <div class="label">西北五区</div>
-    <div class="value info">2,959台</div>
-    <div class="sub">WOS中位数 1.7周 | 高危86 | 库龄风险2,802台</div>
-  </div><div class="card">
-    <div class="label">西北三区</div>
-    <div class="value info">4,598台</div>
-    <div class="sub">WOS中位数 1.7周 | 高危110 | 库龄风险4,463台</div>
-  </div><div class="card">
-    <div class="label">重庆区域</div>
-    <div class="value info">5,920台</div>
-    <div class="sub">WOS中位数 1.6周 | 高危145 | 库龄风险5,655台</div>
-  </div><div class="card">
-    <div class="label">四川区域</div>
-    <div class="value info">5,740台</div>
-    <div class="sub">WOS中位数 1.5周 | 高危111 | 库龄风险5,546台</div>
-  </div><div class="card">
-    <div class="label">西北四区</div>
-    <div class="value info">4,005台</div>
-    <div class="sub">WOS中位数 1.4周 | 高危110 | 库龄风险3,855台</div>
-  </div><div class="card">
-    <div class="label">西北六区</div>
-    <div class="value info">3,105台</div>
-    <div class="sub">WOS中位数 1.3周 | 高危114 | 库龄风险2,959台</div>
-  </div><div class="card">
-    <div class="label">APR总部</div>
-    <div class="value info">3,880台</div>
-    <div class="sub">WOS中位数 nan周 | 高危13 | 库龄风险3,860台</div>
-  </div>
-  </div>
-</div>
-
-<!-- 品类详情 -->
-<div class="section">
-  <h2>品类级库存健康度</h2>
+  <h2>📊 区域健康度排名</h2>
   <div class="scroll-table">
     <table>
-      <thead>
-        <tr>
-          <th>品类</th>
-          <th>库存量(台)</th>
-          <th>库存金额(万)</th>
-          <th>周销库存覆盖数中位数(周)</th>
-          <th>状态</th>
-        </tr>
-      </thead>
+      <thead><tr><th>区域</th><th>门店数</th><th>库存量</th><th>库存金额</th><th>库存可销周数中位数</th><th>健康度得分</th><th>紧缺</th><th>滞销</th></tr></thead>
       <tbody>
-        <tr><td>平板</td><td>10,378</td><td>¥4290.0</td><td>1.9</td><td><span class="tag tag-warning">🟡 关注</span></td></tr>
-<tr><td>手机</td><td>38,915</td><td>¥31007.8</td><td>2.0</td><td><span class="tag tag-success">🟢 健康</span></td></tr>
-<tr><td>手表</td><td>8,436</td><td>¥2396.7</td><td>1.4</td><td><span class="tag tag-danger">🔴 缺货</span></td></tr>
-<tr><td>电脑</td><td>1,779</td><td>¥1284.3</td><td>1.0</td><td><span class="tag tag-danger">🔴 缺货</span></td></tr>
+        <tr><td>西北三区</td><td>9</td><td>7,813</td><td>¥3219.3万</td><td>3.0</td><td>10.0</td><td>123</td><td>8</td></tr>
+<tr><td>西北六区</td><td>9</td><td>5,510</td><td>¥2267.2万</td><td>3.0</td><td>10.0</td><td>122</td><td>5</td></tr>
+<tr><td>西北四区</td><td>9</td><td>6,889</td><td>¥3172.6万</td><td>3.0</td><td>10.0</td><td>121</td><td>7</td></tr>
+<tr><td>贵州区域</td><td>8</td><td>5,300</td><td>¥2032.4万</td><td>3.0</td><td>10.0</td><td>98</td><td>10</td></tr>
+<tr><td>西北一区</td><td>8</td><td>5,009</td><td>¥2105.1万</td><td>3.3</td><td>9.7</td><td>85</td><td>3</td></tr>
+<tr><td>西北二区</td><td>10</td><td>8,252</td><td>¥3820.5万</td><td>3.3</td><td>9.7</td><td>134</td><td>24</td></tr>
+<tr><td>重庆区域</td><td>13</td><td>10,545</td><td>¥4270.4万</td><td>3.3</td><td>9.7</td><td>149</td><td>14</td></tr>
+<tr><td>西北五区</td><td>8</td><td>4,723</td><td>¥2140.2万</td><td>3.5</td><td>9.5</td><td>77</td><td>6</td></tr>
+<tr><td>云南区域</td><td>13</td><td>8,402</td><td>¥3478.3万</td><td>3.5</td><td>9.5</td><td>129</td><td>18</td></tr>
+<tr><td>河南区域</td><td>11</td><td>10,216</td><td>¥4611.5万</td><td>3.5</td><td>9.5</td><td>140</td><td>11</td></tr>
+<tr><td>四川区域</td><td>11</td><td>8,945</td><td>¥3913.8万</td><td>4.0</td><td>9.0</td><td>111</td><td>5</td></tr>
+<tr><td>华南一区</td><td>8</td><td>4,653</td><td>¥2069.9万</td><td>4.2</td><td>8.8</td><td>106</td><td>23</td></tr>
+<tr><td>华南二区</td><td>10</td><td>5,558</td><td>¥2545.3万</td><td>4.9</td><td>8.1</td><td>122</td><td>27</td></tr>
+<tr><td>APR总部</td><td>1</td><td>4,619</td><td>¥2268.3万</td><td>inf</td><td>-inf</td><td>18</td><td>18</td></tr>
+
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- 畅销/滞销 -->
 <div class="two-col">
   <div class="section">
-    <h2>近4周畅销TOP15</h2>
+    <h2>🔥 热销单品 TOP10</h2>
     <div class="scroll-table">
       <table>
-        <thead>
-          <tr><th>型号</th><th>细分分类</th><th>品类</th><th>近4周销量</th><th>总库存</th></tr>
-        </thead>
+        <thead><tr><th>型号</th><th>品类</th><th>近4周销量</th><th>现有库存</th></tr></thead>
         <tbody>
-          <tr><td>MG8T4CH/A</td><td>iPhone 17 Pro</td><td>手机</td><td>10957</td><td>2211</td></tr>
-<tr><td>MG034CH/A</td><td>iPhone 17 Pro Max</td><td>手机</td><td>10670</td><td>8228</td></tr>
-<tr><td>MG6X4CH/A</td><td>iPhone 17</td><td>手机</td><td>6004</td><td>8765</td></tr>
-<tr><td>MEUN4CH/B</td><td>Watch Series 11 GPS</td><td>手表</td><td>4932</td><td>2642</td></tr>
-<tr><td>MG044CH/A</td><td>iPhone 17 Pro Max</td><td>手机</td><td>3914</td><td>3689</td></tr>
-<tr><td>MG064CH/A</td><td>iPhone 17 Pro Max</td><td>手机</td><td>3579</td><td>2456</td></tr>
-<tr><td>MG8U4CH/A</td><td>iPhone 17 Pro</td><td>手机</td><td>3046</td><td>801</td></tr>
-<tr><td>MD4G4CH/A</td><td>iPad 11 WIFI</td><td>平板</td><td>2798</td><td>1715</td></tr>
-<tr><td>MG8W4CH/A</td><td>iPhone 17 Pro</td><td>手机</td><td>2320</td><td>862</td></tr>
-<tr><td>MG704CH/A</td><td>iPhone 17</td><td>手机</td><td>2314</td><td>1187</td></tr>
-<tr><td>MG6W4CH/A</td><td>iPhone 17</td><td>手机</td><td>1995</td><td>3261</td></tr>
-<tr><td>MD3Y4CH/A</td><td>iPad 11 WIFI</td><td>平板</td><td>1835</td><td>2333</td></tr>
-<tr><td>MG074CH/A</td><td>iPhone 17 Pro Max</td><td>手机</td><td>1782</td><td>1685</td></tr>
-<tr><td>MEVH4CH/B</td><td>Watch Series 11 GPS</td><td>手表</td><td>1700</td><td>2990</td></tr>
-<tr><td>MH354CH/A</td><td>iPad Air 11 WIFI 8nd</td><td>平板</td><td>978</td><td>2109</td></tr>
+          <tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>9</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>17</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>1</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>1</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>2</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>6</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>1</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>7</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>4</td></tr>
+<tr><td>MG8T4CH/A</td><td>手机</td><td>10957</td><td>1</td></tr>
+
         </tbody>
       </table>
     </div>
   </div>
   <div class="section">
-    <h2>近4周滞销TOP15</h2>
+    <h2>❄️ 滞销单品 TOP10</h2>
     <div class="scroll-table">
       <table>
-        <thead>
-          <tr><th>型号</th><th>细分分类</th><th>品类</th><th>近4周销量</th><th>总库存</th></tr>
-        </thead>
+        <thead><tr><th>型号</th><th>品类</th><th>近4周销量</th><th>现有库存</th></tr></thead>
         <tbody>
-          <tr><td>3N384CH/A</td><td>iPhone 16</td><td>手机</td><td>0</td><td>1</td></tr>
-<tr><td>3N792CH/A</td><td>iPad 11 WIFI</td><td>平板</td><td>0</td><td>1</td></tr>
-<tr><td>3P323CH/B</td><td>Watch Series 11 GPS</td><td>手表</td><td>0</td><td>1</td></tr>
-<tr><td>3P325CH/B</td><td>Watch Series 11 GPS</td><td>手表</td><td>0</td><td>1</td></tr>
-<tr><td>3P348CH/B</td><td>Watch Ultra 3 25</td><td>手表</td><td>0</td><td>1</td></tr>
-<tr><td>MC6A4CH/A</td><td>Mac book air 13</td><td>电脑</td><td>0</td><td>2</td></tr>
-<tr><td>MC9X4CH/A</td><td>iPad Air 11 WIFI 7nd</td><td>平板</td><td>0</td><td>1</td></tr>
-<tr><td>MCGD4CH/A</td><td>iPad Air 11 5G 7nd</td><td>平板</td><td>0</td><td>24</td></tr>
-<tr><td>MCGE4CH/A</td><td>iPad Air 11 5G 7nd</td><td>平板</td><td>0</td><td>18</td></tr>
-<tr><td>MCGF4CH/A</td><td>iPad Air 11 5G 7nd</td><td>平板</td><td>0</td><td>13</td></tr>
-<tr><td>MCGG4CH/A</td><td>iPad Air 11 5G 7nd</td><td>平板</td><td>0</td><td>32</td></tr>
-<tr><td>MCJP4CH/A</td><td>iPad Air 13 5G 7nd</td><td>平板</td><td>0</td><td>4</td></tr>
-<tr><td>MCJT4CH/A</td><td>iPad Air 13 5G 7nd</td><td>平板</td><td>0</td><td>1</td></tr>
-<tr><td>MD2C4CH/A</td><td>iPhone 16e</td><td>手机</td><td>0</td><td>1</td></tr>
-<tr><td>MD2G4CH/A</td><td>iPhone 16e</td><td>手机</td><td>0</td><td>1</td></tr>
+          <tr><td>3N384CH/A</td><td>手机</td><td>0</td><td>1</td></tr>
+<tr><td>3N792CH/A</td><td>平板</td><td>0</td><td>1</td></tr>
+<tr><td>3P323CH/B</td><td>手表</td><td>0</td><td>1</td></tr>
+<tr><td>3P325CH/B</td><td>手表</td><td>0</td><td>1</td></tr>
+<tr><td>3P348CH/B</td><td>手表</td><td>0</td><td>1</td></tr>
+<tr><td>MC6A4CH/A</td><td>电脑</td><td>0</td><td>2</td></tr>
+<tr><td>MC9X4CH/A</td><td>平板</td><td>0</td><td>1</td></tr>
+<tr><td>MCGD4CH/A</td><td>平板</td><td>0</td><td>1</td></tr>
+<tr><td>MCGD4CH/A</td><td>平板</td><td>0</td><td>1</td></tr>
+<tr><td>MCGD4CH/A</td><td>平板</td><td>0</td><td>1</td></tr>
+
         </tbody>
       </table>
     </div>
   </div>
 </div>
 
-<!-- 缺货/积压预警 -->
 <div class="two-col">
   <div class="section">
-    <h2>缺货风险TOP15（按金额）</h2>
+    <h2>🔴 库存紧缺 TOP10（按金额）</h2>
     <div class="scroll-table">
       <table>
-        <thead>
-          <tr><th>产品名称</th><th>型号</th><th>ABC</th><th>建议动作</th><th>建议数量</th><th>门店</th><th>现有量</th><th>周均销量</th><th>周销库存覆盖数</th><th>金额(万)</th></tr>
-        </thead>
+        <thead><tr><th>型号</th><th>门店</th><th>品类</th><th>库存量</th><th>可销周数</th><th>金额</th></tr></thead>
         <tbody>
-          <tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货104台</span></td><td>104</td><td>乌鲁木齐德汇万达广场店</td><td>24</td><td>25.7</td><td>0.9</td><td>¥22.8</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货175台</span></td><td>175</td><td>乌鲁木齐汇嘉时代广场店</td><td>22</td><td>39.5</td><td>0.6</td><td>¥20.9</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货98台</span></td><td>98</td><td>乌鲁木齐会展吾悦广场店</td><td>15</td><td>22.7</td><td>0.7</td><td>¥14.2</td></tr>
-<tr><td title="MG8T4CH/A">苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>MG8T4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货66台</span></td><td>66</td><td>洛阳王府井百货店</td><td>16</td><td>16.4</td><td>1.0</td><td>¥13.7</td></tr>
-<tr><td title="MG8T4CH/A">苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>MG8T4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货66台</span></td><td>66</td><td>重庆沙坪坝万达广场店</td><td>13</td><td>15.9</td><td>0.8</td><td>¥11.1</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货68台</span></td><td>68</td><td>乌鲁木齐天山万科广场店</td><td>11</td><td>15.8</td><td>0.7</td><td>¥10.4</td></tr>
-<tr><td title="MG8T4CH/A">苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>MG8T4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货80台</span></td><td>80</td><td>咸阳秦都万达广场店</td><td>12</td><td>18.4</td><td>0.7</td><td>¥10.3</td></tr>
-<tr><td title="MG8T4CH/A">苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>MG8T4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货49台</span></td><td>49</td><td>贵阳美的悦然广场店</td><td>12</td><td>12.3</td><td>1.0</td><td>¥10.3</td></tr>
-<tr><td title="MG044CH/A">苹果 MG044CH/A iPhone 17 Pro Max 256GB 星宇橙</td><td>MG044CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货40台</span></td><td>40</td><td>西宁中惠万达广场店</td><td>9</td><td>9.9</td><td>0.9</td><td>¥8.5</td></tr>
-<tr><td title="MG8W4CH/A">苹果 MG8W4CH/A iPhone 17 Pro 512GB 银色-2025</td><td>MG8W4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货28台</span></td><td>28</td><td>成都金牛万达广场店</td><td>7</td><td>7.1</td><td>1.0</td><td>¥7.3</td></tr>
-<tr><td title="MG8T4CH/A">苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>MG8T4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货44台</span></td><td>44</td><td>深圳江南时代广场店</td><td>8</td><td>10.4</td><td>0.8</td><td>¥6.8</td></tr>
-<tr><td title="MG8T4CH/A">苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>MG8T4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货55台</span></td><td>55</td><td>西安浐灞印象城店</td><td>8</td><td>12.6</td><td>0.6</td><td>¥6.8</td></tr>
-<tr><td title="MG8T4CH/A">苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>MG8T4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货41台</span></td><td>41</td><td>西安王府井Discovery店</td><td>8</td><td>9.9</td><td>0.8</td><td>¥6.8</td></tr>
-<tr><td title="MG8T4CH/A">苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>MG8T4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货30台</span></td><td>30</td><td>银川兴庆吾悦广场店</td><td>7</td><td>7.5</td><td>0.9</td><td>¥6.0</td></tr>
-<tr><td title="MG8U4CH/A">苹果 MG8U4CH/A iPhone 17 Pro 256GB 星宇橙色-20</td><td>MG8U4CH/A</td><td><span class="tag" style="background:#f59e0b33;color:#fde68a;border:1px solid #f59e0b">B</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">补货34台</span></td><td>34</td><td>乌鲁木齐汇嘉时代广场店</td><td>7</td><td>8.3</td><td>0.8</td><td>¥6.0</td></tr>
+          <tr><td>MG034CH/A</td><td>乌鲁木齐德汇万达广场店</td><td>手机</td><td>21</td><td>0.8</td><td>¥19.9万</td></tr>
+<tr><td>MG034CH/A</td><td>乌鲁木齐汇嘉时代广场店</td><td>手机</td><td>19</td><td>0.5</td><td>¥18.0万</td></tr>
+<tr><td>MG034CH/A</td><td>乌鲁木齐会展吾悦广场店</td><td>手机</td><td>15</td><td>0.7</td><td>¥14.2万</td></tr>
+<tr><td>MG8T4CH/A</td><td>西安长安万科广场店</td><td>手机</td><td>12</td><td>0.8</td><td>¥10.3万</td></tr>
+<tr><td>MG8T4CH/A</td><td>郑州盛华里购物中心店</td><td>手机</td><td>11</td><td>1.0</td><td>¥9.4万</td></tr>
+<tr><td>MG8T4CH/A</td><td>成都群光广场店</td><td>手机</td><td>10</td><td>0.5</td><td>¥8.5万</td></tr>
+<tr><td>MG8T4CH/A</td><td>贵阳美的悦然广场店</td><td>手机</td><td>9</td><td>0.6</td><td>¥7.7万</td></tr>
+<tr><td>MG8U4CH/A</td><td>乌鲁木齐汇嘉时代广场店</td><td>手机</td><td>9</td><td>1.0</td><td>¥7.7万</td></tr>
+<tr><td>MG8T4CH/A</td><td>广州骏壹万邦购物中心店</td><td>手机</td><td>9</td><td>1.0</td><td>¥7.7万</td></tr>
+<tr><td>MG8W4CH/A</td><td>成都金牛万达广场店</td><td>手机</td><td>7</td><td>0.8</td><td>¥7.3万</td></tr>
+
         </tbody>
       </table>
     </div>
   </div>
   <div class="section">
-    <h2>积压风险TOP15（按金额）</h2>
+    <h2>🔴 库存积压 TOP10（按金额）</h2>
     <div class="scroll-table">
       <table>
-        <thead>
-          <tr><th>产品名称</th><th>型号</th><th>ABC</th><th>建议动作</th><th>建议数量</th><th>门店</th><th>现有量</th><th>周均销量</th><th>周销库存覆盖数</th><th>金额(万)</th></tr>
-        </thead>
+        <thead><tr><th>型号</th><th>门店</th><th>品类</th><th>库存量</th><th>可销周数</th><th>金额</th></tr></thead>
         <tbody>
-          <tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清409台</span></td><td>409</td><td>西安王府井百货熙地港店</td><td>446</td><td>36.7</td><td>12.2</td><td>¥423.4</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清365台</span></td><td>365</td><td>重庆渝北SKLP店</td><td>410</td><td>44.4</td><td>9.2</td><td>¥389.2</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清290台</span></td><td>290</td><td>郑州信万广场店</td><td>317</td><td>26.7</td><td>11.9</td><td>¥300.9</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清248台</span></td><td>248</td><td>昆明西山万达广场店</td><td>280</td><td>31.4</td><td>8.9</td><td>¥265.8</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清227台</span></td><td>227</td><td>成都金牛万达广场店</td><td>252</td><td>24.7</td><td>10.2</td><td>¥239.2</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清209台</span></td><td>209</td><td>洛阳王府井百货店</td><td>233</td><td>23.6</td><td>9.9</td><td>¥221.2</td></tr>
-<tr><td title="MG064CH/A">苹果 MG064CH/A iPhone 17 Pro Max 512GB 银色-</td><td>MG064CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清128台</span></td><td>128</td><td>兰州中心店</td><td>146</td><td>17.8</td><td>8.2</td><td>¥166.3</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清153台</span></td><td>153</td><td>西安万象城店</td><td>173</td><td>19.6</td><td>8.8</td><td>¥164.2</td></tr>
-<tr><td title="MG6X4CH/A">苹果 MG6X4CH/A iPhone 17 256GB 白色-20250910</td><td>MG6X4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清234台</span></td><td>234</td><td>成都金牛万达广场店</td><td>262</td><td>27.8</td><td>9.4</td><td>¥149.2</td></tr>
-<tr><td title="MG6X4CH/A">苹果 MG6X4CH/A iPhone 17 256GB 白色-20250910</td><td>MG6X4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清236台</span></td><td>236</td><td>安阳万达广场店</td><td>256</td><td>19.4</td><td>13.2</td><td>¥145.7</td></tr>
-<tr><td title="MG6X4CH/A">苹果 MG6X4CH/A iPhone 17 256GB 白色-20250910</td><td>MG6X4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清235台</span></td><td>235</td><td>驻马店天中环球港店</td><td>255</td><td>19.4</td><td>13.1</td><td>¥145.2</td></tr>
-<tr><td title="MG6X4CH/A">苹果 MG6X4CH/A iPhone 17 256GB 白色-20250910</td><td>MG6X4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清214台</span></td><td>214</td><td>洛阳泉舜购物中心店</td><td>239</td><td>24.7</td><td>9.7</td><td>¥136.1</td></tr>
-<tr><td title="MG6X4CH/A">苹果 MG6X4CH/A iPhone 17 256GB 白色-20250910</td><td>MG6X4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清195台</span></td><td>195</td><td>重庆沙坪坝万达广场店</td><td>216</td><td>20.3</td><td>10.6</td><td>¥123.0</td></tr>
-<tr><td title="MG6X4CH/A">苹果 MG6X4CH/A iPhone 17 256GB 白色-20250910</td><td>MG6X4CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清193台</span></td><td>193</td><td>咸阳秦都万达广场店</td><td>215</td><td>21.3</td><td>10.1</td><td>¥122.4</td></tr>
-<tr><td title="MG034CH/A">苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>MG034CH/A</td><td><span class="tag" style="background:#ef444433;color:#fca5a5;border:1px solid #ef4444">A</span></td><td><span class="tag" style="background:#37415133;color:#9ca3af;border:1px solid #374151">调拨/促销清105台</span></td><td>105</td><td>重庆沙坪坝万达广场店</td><td>117</td><td>11.5</td><td>10.1</td><td>¥111.1</td></tr>
+          <tr><td>MG034CH/A</td><td>西安王府井百货熙地港店</td><td>手机</td><td>443</td><td>10.6</td><td>¥420.5万</td></tr>
+<tr><td>MG034CH/A</td><td>重庆渝北SKLP店</td><td>手机</td><td>410</td><td>8.6</td><td>¥389.2万</td></tr>
+<tr><td>MG034CH/A</td><td>郑州信万广场店</td><td>手机</td><td>314</td><td>10.5</td><td>¥298.1万</td></tr>
+<tr><td>MG034CH/A</td><td>成都金牛万达广场店</td><td>手机</td><td>248</td><td>10.2</td><td>¥235.4万</td></tr>
+<tr><td>MG034CH/A</td><td>洛阳王府井百货店</td><td>手机</td><td>231</td><td>8.8</td><td>¥219.3万</td></tr>
+<tr><td>MG064CH/A</td><td>兰州中心店</td><td>手机</td><td>145</td><td>8.8</td><td>¥165.2万</td></tr>
+<tr><td>MG064CH/A</td><td>西安赛格国际购物中心店</td><td>手机</td><td>142</td><td>8.1</td><td>¥161.8万</td></tr>
+<tr><td>MG6X4CH/A</td><td>成都金牛万达广场店</td><td>手机</td><td>262</td><td>9.9</td><td>¥149.2万</td></tr>
+<tr><td>MG6X4CH/A</td><td>安阳万达广场店</td><td>手机</td><td>254</td><td>13.4</td><td>¥144.6万</td></tr>
+<tr><td>MG6X4CH/A</td><td>驻马店天中环球港店</td><td>手机</td><td>252</td><td>12.2</td><td>¥143.5万</td></tr>
+
         </tbody>
       </table>
     </div>
   </div>
 </div>
 
-<!-- 门店预警 -->
 <div class="section">
-  <h2>门店预警清单</h2>
-  <div class="kpi-row">
-    <div class="kpi-pill"><span class="num" style="color:#ef4444">18</span> 高危门店</div>
-    <div class="kpi-pill"><span class="num" style="color:#f59e0b">40</span> 中危门店</div>
-    <div class="kpi-pill"><span class="num" style="color:#eab308">56</span> 低危门店</div>
-    <div class="kpi-pill"><span class="num" style="color:#22c55e">14</span> 正常门店</div>
-  </div>
+  <h2>🔴 高危门店 TOP10</h2>
   <div class="scroll-table">
     <table>
-      <thead>
-        <tr>
-          <th>风险等级</th>
-          <th>门店名称</th>
-          <th>所属分区</th>
-          <th>库存量</th>
-          <th>库存金额(万)</th>
-          <th>缺货积压</th>
-          <th>零销积压</th>
-          <th>关注</th>
-          <th>高风险库龄台数</th>
-        </tr>
-      </thead>
+      <thead><tr><th>门店</th><th>区域</th><th>风险总分</th><th>紧缺</th><th>滞销</th><th>关注</th><th>高库龄</th></tr></thead>
       <tbody>
-        <tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>东莞万科城市广场店</td>
-            <td>华南二区</td>
-            <td>282</td>
-            <td>¥176.0</td>
-            <td>18</td>
-            <td>0</td>
-            <td>5</td>
-            <td>261</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>西安城市中心民生大楼店</td>
-            <td>西北二区</td>
-            <td>365</td>
-            <td>¥240.3</td>
-            <td>14</td>
-            <td>9</td>
-            <td>4</td>
-            <td>320</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>西安赛格国际购物中心店</td>
-            <td>西北三区</td>
-            <td>1,026</td>
-            <td>¥781.3</td>
-            <td>16</td>
-            <td>0</td>
-            <td>5</td>
-            <td>1,005</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>广州荔湾欢民天地店</td>
-            <td>华南二区</td>
-            <td>348</td>
-            <td>¥243.5</td>
-            <td>22</td>
-            <td>16</td>
-            <td>0</td>
-            <td>327</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>西宁中惠万达广场店</td>
-            <td>西北四区</td>
-            <td>373</td>
-            <td>¥251.3</td>
-            <td>19</td>
-            <td>0</td>
-            <td>3</td>
-            <td>363</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>成都群光广场店</td>
-            <td>四川区域</td>
-            <td>430</td>
-            <td>¥294.7</td>
-            <td>23</td>
-            <td>0</td>
-            <td>2</td>
-            <td>414</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>郑州信万广场店</td>
-            <td>河南区域</td>
-            <td>1,234</td>
-            <td>¥758.3</td>
-            <td>17</td>
-            <td>0</td>
-            <td>3</td>
-            <td>1,203</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>成都远大购物中心店</td>
-            <td>四川区域</td>
-            <td>813</td>
-            <td>¥447.3</td>
-            <td>16</td>
-            <td>1</td>
-            <td>5</td>
-            <td>800</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>成都金牛万达广场店</td>
-            <td>四川区域</td>
-            <td>1,156</td>
-            <td>¥798.2</td>
-            <td>16</td>
-            <td>0</td>
-            <td>5</td>
-            <td>1,138</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>佛山映月湖环宇城店</td>
-            <td>华南二区</td>
-            <td>436</td>
-            <td>¥301.7</td>
-            <td>16</td>
-            <td>1</td>
-            <td>3</td>
-            <td>415</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>重庆光环购物公园店</td>
-            <td>重庆区域</td>
-            <td>440</td>
-            <td>¥307.8</td>
-            <td>19</td>
-            <td>0</td>
-            <td>1</td>
-            <td>421</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>重庆渝北SKLP店</td>
-            <td>重庆区域</td>
-            <td>1,623</td>
-            <td>¥1196.2</td>
-            <td>21</td>
-            <td>0</td>
-            <td>5</td>
-            <td>1,590</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>无</td>
-            <td>APR总部</td>
-            <td>3,880</td>
-            <td>¥2074.1</td>
-            <td>13</td>
-            <td>13</td>
-            <td>0</td>
-            <td>3,860</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>乌鲁木齐汇嘉时代广场店</td>
-            <td>西北六区</td>
-            <td>721</td>
-            <td>¥514.9</td>
-            <td>17</td>
-            <td>0</td>
-            <td>5</td>
-            <td>709</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>深圳桃源幸福里店</td>
-            <td>华南一区</td>
-            <td>356</td>
-            <td>¥236.7</td>
-            <td>23</td>
-            <td>17</td>
-            <td>2</td>
-            <td>335</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>乌鲁木齐德汇万达广场店</td>
-            <td>西北六区</td>
-            <td>306</td>
-            <td>¥198.1</td>
-            <td>18</td>
-            <td>1</td>
-            <td>1</td>
-            <td>293</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>深圳坂田天虹购物中心店</td>
-            <td>华南一区</td>
-            <td>332</td>
-            <td>¥214.1</td>
-            <td>20</td>
-            <td>0</td>
-            <td>1</td>
-            <td>315</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-danger">🔴 高危</span></td>
-            <td>银川新百中心店</td>
-            <td>西北五区</td>
-            <td>415</td>
-            <td>¥260.0</td>
-            <td>19</td>
-            <td>0</td>
-            <td>5</td>
-            <td>397</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>深圳江南时代广场店</td>
-            <td>华南一区</td>
-            <td>378</td>
-            <td>¥227.8</td>
-            <td>14</td>
-            <td>1</td>
-            <td>3</td>
-            <td>359</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安大都荟店</td>
-            <td>西北一区</td>
-            <td>337</td>
-            <td>¥235.6</td>
-            <td>14</td>
-            <td>0</td>
-            <td>0</td>
-            <td>322</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西宁海湖万达广场店</td>
-            <td>西北四区</td>
-            <td>656</td>
-            <td>¥536.9</td>
-            <td>13</td>
-            <td>0</td>
-            <td>5</td>
-            <td>647</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安凯德广场御锦城店</td>
-            <td>西北三区</td>
-            <td>402</td>
-            <td>¥245.9</td>
-            <td>15</td>
-            <td>0</td>
-            <td>3</td>
-            <td>385</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>深圳壹海城店</td>
-            <td>华南一区</td>
-            <td>307</td>
-            <td>¥208.8</td>
-            <td>12</td>
-            <td>0</td>
-            <td>4</td>
-            <td>288</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安大茂城店</td>
-            <td>西北一区</td>
-            <td>528</td>
-            <td>¥310.8</td>
-            <td>15</td>
-            <td>0</td>
-            <td>3</td>
-            <td>514</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>深圳深业上城店</td>
-            <td>华南一区</td>
-            <td>377</td>
-            <td>¥245.6</td>
-            <td>12</td>
-            <td>0</td>
-            <td>4</td>
-            <td>363</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安太乙城店</td>
-            <td>西北二区</td>
-            <td>327</td>
-            <td>¥207.7</td>
-            <td>12</td>
-            <td>1</td>
-            <td>1</td>
-            <td>308</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安立丰国际购物广场店</td>
-            <td>西北二区</td>
-            <td>389</td>
-            <td>¥226.9</td>
-            <td>16</td>
-            <td>1</td>
-            <td>2</td>
-            <td>372</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安浐灞印象城店</td>
-            <td>西北三区</td>
-            <td>473</td>
-            <td>¥321.9</td>
-            <td>16</td>
-            <td>0</td>
-            <td>3</td>
-            <td>460</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>银川悠阅城店</td>
-            <td>西北五区</td>
-            <td>353</td>
-            <td>¥228.5</td>
-            <td>11</td>
-            <td>1</td>
-            <td>4</td>
-            <td>331</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>银川建发阅彩城店</td>
-            <td>西北五区</td>
-            <td>643</td>
-            <td>¥418.1</td>
-            <td>11</td>
-            <td>0</td>
-            <td>5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>重庆綦江万达广场店</td>
-            <td>重庆区域</td>
-            <td>322</td>
-            <td>¥206.8</td>
-            <td>13</td>
-            <td>0</td>
-            <td>5</td>
-            <td>304</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>重庆爱琴海购物公园店</td>
-            <td>重庆区域</td>
-            <td>250</td>
-            <td>¥155.2</td>
-            <td>15</td>
-            <td>0</td>
-            <td>3</td>
-            <td>233</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>重庆沙坪坝万达广场店</td>
-            <td>重庆区域</td>
-            <td>693</td>
-            <td>¥454.0</td>
-            <td>14</td>
-            <td>0</td>
-            <td>3</td>
-            <td>661</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>重庆双福爱琴海店</td>
-            <td>重庆区域</td>
-            <td>368</td>
-            <td>¥225.2</td>
-            <td>10</td>
-            <td>1</td>
-            <td>7</td>
-            <td>348</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>郑州盛华里购物中心店</td>
-            <td>河南区域</td>
-            <td>429</td>
-            <td>¥260.0</td>
-            <td>12</td>
-            <td>0</td>
-            <td>5</td>
-            <td>415</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>郑州朗悦新悦荟购物中心店</td>
-            <td>河南区域</td>
-            <td>463</td>
-            <td>¥257.9</td>
-            <td>12</td>
-            <td>0</td>
-            <td>4</td>
-            <td>448</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>郑州丹尼斯华强广场店</td>
-            <td>河南区域</td>
-            <td>261</td>
-            <td>¥132.5</td>
-            <td>13</td>
-            <td>1</td>
-            <td>2</td>
-            <td>249</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>贵阳万象城店</td>
-            <td>贵州区域</td>
-            <td>743</td>
-            <td>¥497.6</td>
-            <td>12</td>
-            <td>0</td>
-            <td>2</td>
-            <td>715</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安高新万达广场店</td>
-            <td>西北三区</td>
-            <td>312</td>
-            <td>¥197.9</td>
-            <td>16</td>
-            <td>1</td>
-            <td>2</td>
-            <td>300</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安际华广场店</td>
-            <td>西北一区</td>
-            <td>341</td>
-            <td>¥213.4</td>
-            <td>16</td>
-            <td>0</td>
-            <td>3</td>
-            <td>329</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安金辉广场店</td>
-            <td>西北三区</td>
-            <td>361</td>
-            <td>¥253.9</td>
-            <td>13</td>
-            <td>0</td>
-            <td>4</td>
-            <td>352</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>昌吉汇嘉时代东方广场店</td>
-            <td>西北六区</td>
-            <td>344</td>
-            <td>¥235.9</td>
-            <td>12</td>
-            <td>0</td>
-            <td>3</td>
-            <td>333</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安王府井百货熙地港店</td>
-            <td>西北二区</td>
-            <td>1,055</td>
-            <td>¥845.8</td>
-            <td>15</td>
-            <td>0</td>
-            <td>2</td>
-            <td>1,037</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>西安曲江金地广场店</td>
-            <td>西北三区</td>
-            <td>286</td>
-            <td>¥185.8</td>
-            <td>15</td>
-            <td>0</td>
-            <td>0</td>
-            <td>276</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>昆明西山万达广场店</td>
-            <td>云南区域</td>
-            <td>972</td>
-            <td>¥755.7</td>
-            <td>16</td>
-            <td>0</td>
-            <td>3</td>
-            <td>943</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>深圳沙井天虹商场店</td>
-            <td>华南一区</td>
-            <td>425</td>
-            <td>¥266.9</td>
-            <td>12</td>
-            <td>0</td>
-            <td>3</td>
-            <td>401</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>昆明瑞鼎城悦容匯购物公园店</td>
-            <td>云南区域</td>
-            <td>424</td>
-            <td>¥285.2</td>
-            <td>14</td>
-            <td>0</td>
-            <td>5</td>
-            <td>393</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>乌鲁木齐天山万科广场店</td>
-            <td>西北六区</td>
-            <td>267</td>
-            <td>¥183.0</td>
-            <td>14</td>
-            <td>0</td>
-            <td>2</td>
-            <td>247</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>乌鲁木齐经开万达店</td>
-            <td>西北六区</td>
-            <td>355</td>
-            <td>¥234.4</td>
-            <td>16</td>
-            <td>0</td>
-            <td>1</td>
-            <td>326</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>兰州万象城店</td>
-            <td>西北四区</td>
-            <td>633</td>
-            <td>¥464.4</td>
-            <td>17</td>
-            <td>0</td>
-            <td>1</td>
-            <td>615</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>兰州万达茂店</td>
-            <td>西北四区</td>
-            <td>291</td>
-            <td>¥195.1</td>
-            <td>11</td>
-            <td>1</td>
-            <td>3</td>
-            <td>268</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>兰州中心店</td>
-            <td>西北四区</td>
-            <td>909</td>
-            <td>¥746.5</td>
-            <td>15</td>
-            <td>0</td>
-            <td>5</td>
-            <td>890</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>广州天河欢乐颂店</td>
-            <td>华南二区</td>
-            <td>431</td>
-            <td>¥283.9</td>
-            <td>13</td>
-            <td>0</td>
-            <td>3</td>
-            <td>418</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>广州荔胜广百广场店</td>
-            <td>华南二区</td>
-            <td>338</td>
-            <td>¥243.1</td>
-            <td>14</td>
-            <td>0</td>
-            <td>3</td>
-            <td>319</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>广州骏壹万邦购物中心店</td>
-            <td>华南二区</td>
-            <td>558</td>
-            <td>¥375.8</td>
-            <td>15</td>
-            <td>0</td>
-            <td>5</td>
-            <td>537</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>昆明呈贡吾悦广场店</td>
-            <td>云南区域</td>
-            <td>323</td>
-            <td>¥196.1</td>
-            <td>11</td>
-            <td>0</td>
-            <td>7</td>
-            <td>305</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>驻马店天中环球港店</td>
-            <td>河南区域</td>
-            <td>752</td>
-            <td>¥481.5</td>
-            <td>14</td>
-            <td>1</td>
-            <td>2</td>
-            <td>741</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟠 中危</span></td>
-            <td>昆明富康城购物中心店</td>
-            <td>云南区域</td>
-            <td>266</td>
-            <td>¥169.5</td>
-            <td>13</td>
-            <td>2</td>
-            <td>4</td>
-            <td>244</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>洛阳王府井购物中心店</td>
-            <td>河南区域</td>
-            <td>337</td>
-            <td>¥208.1</td>
-            <td>7</td>
-            <td>0</td>
-            <td>3</td>
-            <td>325</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>洛阳王府井百货店</td>
-            <td>河南区域</td>
-            <td>715</td>
-            <td>¥509.1</td>
-            <td>10</td>
-            <td>0</td>
-            <td>1</td>
-            <td>688</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>兰州平凉路北京华联购物中心店</td>
-            <td>西北四区</td>
-            <td>225</td>
-            <td>¥144.1</td>
-            <td>8</td>
-            <td>0</td>
-            <td>2</td>
-            <td>209</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>贵阳国贸玖福城店</td>
-            <td>贵州区域</td>
-            <td>268</td>
-            <td>¥173.7</td>
-            <td>9</td>
-            <td>0</td>
-            <td>4</td>
-            <td>251</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>贵阳国贸逸天城店</td>
-            <td>贵州区域</td>
-            <td>291</td>
-            <td>¥197.2</td>
-            <td>8</td>
-            <td>0</td>
-            <td>0</td>
-            <td>273</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>贵阳益田假日世界店</td>
-            <td>贵州区域</td>
-            <td>455</td>
-            <td>¥299.4</td>
-            <td>7</td>
-            <td>0</td>
-            <td>4</td>
-            <td>426</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>贵阳美的悦然广场店</td>
-            <td>贵州区域</td>
-            <td>385</td>
-            <td>¥240.0</td>
-            <td>10</td>
-            <td>2</td>
-            <td>2</td>
-            <td>353</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>遵义亨特城市广场店</td>
-            <td>贵州区域</td>
-            <td>284</td>
-            <td>¥177.5</td>
-            <td>8</td>
-            <td>1</td>
-            <td>1</td>
-            <td>269</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>遵义国贸购物中心店</td>
-            <td>贵州区域</td>
-            <td>273</td>
-            <td>¥185.1</td>
-            <td>7</td>
-            <td>0</td>
-            <td>3</td>
-            <td>253</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>兰州城关万达广场店</td>
-            <td>西北四区</td>
-            <td>454</td>
-            <td>¥334.7</td>
-            <td>10</td>
-            <td>0</td>
-            <td>2</td>
-            <td>438</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>兰州中海环宇城店</td>
-            <td>西北四区</td>
-            <td>242</td>
-            <td>¥143.5</td>
-            <td>10</td>
-            <td>1</td>
-            <td>4</td>
-            <td>223</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>曲靖万达广场店</td>
-            <td>云南区域</td>
-            <td>267</td>
-            <td>¥160.3</td>
-            <td>7</td>
-            <td>1</td>
-            <td>5</td>
-            <td>246</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>重庆光环花园城店</td>
-            <td>重庆区域</td>
-            <td>326</td>
-            <td>¥200.3</td>
-            <td>9</td>
-            <td>0</td>
-            <td>4</td>
-            <td>311</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>佛山悦汇广场店</td>
-            <td>华南二区</td>
-            <td>277</td>
-            <td>¥174.6</td>
-            <td>10</td>
-            <td>0</td>
-            <td>1</td>
-            <td>258</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>重庆大悦城店</td>
-            <td>重庆区域</td>
-            <td>244</td>
-            <td>¥162.8</td>
-            <td>6</td>
-            <td>3</td>
-            <td>3</td>
-            <td>229</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>乌鲁木齐高新万达广场店</td>
-            <td>西北六区</td>
-            <td>269</td>
-            <td>¥171.2</td>
-            <td>9</td>
-            <td>0</td>
-            <td>4</td>
-            <td>253</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>乌鲁木齐米东吾悦广场店</td>
-            <td>西北六区</td>
-            <td>247</td>
-            <td>¥151.3</td>
-            <td>10</td>
-            <td>1</td>
-            <td>2</td>
-            <td>231</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>乌鲁木齐德港万达广场店</td>
-            <td>西北六区</td>
-            <td>212</td>
-            <td>¥139.4</td>
-            <td>6</td>
-            <td>1</td>
-            <td>3</td>
-            <td>200</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>重庆蓝茵天地店</td>
-            <td>重庆区域</td>
-            <td>328</td>
-            <td>¥187.5</td>
-            <td>8</td>
-            <td>0</td>
-            <td>2</td>
-            <td>309</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>重庆融创茂店</td>
-            <td>重庆区域</td>
-            <td>367</td>
-            <td>¥230.1</td>
-            <td>10</td>
-            <td>1</td>
-            <td>5</td>
-            <td>347</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>重庆龙湖公园天街店</td>
-            <td>重庆区域</td>
-            <td>241</td>
-            <td>¥165.2</td>
-            <td>8</td>
-            <td>1</td>
-            <td>1</td>
-            <td>224</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>银川兴庆吾悦广场店</td>
-            <td>西北五区</td>
-            <td>282</td>
-            <td>¥183.0</td>
-            <td>9</td>
-            <td>1</td>
-            <td>1</td>
-            <td>266</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>昆明观云海商业广场店</td>
-            <td>云南区域</td>
-            <td>344</td>
-            <td>¥201.7</td>
-            <td>9</td>
-            <td>1</td>
-            <td>3</td>
-            <td>326</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>乌鲁木齐会展吾悦广场店</td>
-            <td>西北六区</td>
-            <td>384</td>
-            <td>¥268.4</td>
-            <td>12</td>
-            <td>0</td>
-            <td>1</td>
-            <td>367</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>银川新华百货宁阳广场店</td>
-            <td>西北五区</td>
-            <td>279</td>
-            <td>¥175.4</td>
-            <td>8</td>
-            <td>1</td>
-            <td>3</td>
-            <td>259</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>银川新华联店</td>
-            <td>西北五区</td>
-            <td>312</td>
-            <td>¥216.8</td>
-            <td>10</td>
-            <td>1</td>
-            <td>2</td>
-            <td>292</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>东莞龙湾奥特莱斯广场店</td>
-            <td>华南二区</td>
-            <td>283</td>
-            <td>¥181.9</td>
-            <td>9</td>
-            <td>0</td>
-            <td>2</td>
-            <td>262</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>银川西夏万达广场店</td>
-            <td>西北五区</td>
-            <td>326</td>
-            <td>¥208.7</td>
-            <td>9</td>
-            <td>0</td>
-            <td>4</td>
-            <td>314</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>银川金凤万达广场店</td>
-            <td>西北五区</td>
-            <td>349</td>
-            <td>¥243.6</td>
-            <td>9</td>
-            <td>1</td>
-            <td>4</td>
-            <td>326</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西安高新金鹰店</td>
-            <td>西北一区</td>
-            <td>254</td>
-            <td>¥149.5</td>
-            <td>10</td>
-            <td>0</td>
-            <td>3</td>
-            <td>241</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>兰州熙元广场店</td>
-            <td>西北四区</td>
-            <td>222</td>
-            <td>¥150.3</td>
-            <td>7</td>
-            <td>2</td>
-            <td>5</td>
-            <td>202</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西昌万达广场店</td>
-            <td>四川区域</td>
-            <td>395</td>
-            <td>¥294.8</td>
-            <td>7</td>
-            <td>0</td>
-            <td>2</td>
-            <td>379</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西安长安万科广场店</td>
-            <td>西北三区</td>
-            <td>702</td>
-            <td>¥442.0</td>
-            <td>9</td>
-            <td>0</td>
-            <td>5</td>
-            <td>678</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>昆明和谐广场店</td>
-            <td>云南区域</td>
-            <td>315</td>
-            <td>¥199.7</td>
-            <td>9</td>
-            <td>2</td>
-            <td>3</td>
-            <td>294</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>洛阳泉舜购物中心店</td>
-            <td>河南区域</td>
-            <td>1,036</td>
-            <td>¥652.2</td>
-            <td>11</td>
-            <td>0</td>
-            <td>4</td>
-            <td>1,012</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>深圳宝能太古城店</td>
-            <td>华南一区</td>
-            <td>368</td>
-            <td>¥258.7</td>
-            <td>11</td>
-            <td>0</td>
-            <td>2</td>
-            <td>356</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>昆明世纪金源店</td>
-            <td>云南区域</td>
-            <td>524</td>
-            <td>¥369.4</td>
-            <td>8</td>
-            <td>0</td>
-            <td>4</td>
-            <td>492</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>成都青羊万达广场店</td>
-            <td>四川区域</td>
-            <td>421</td>
-            <td>¥276.0</td>
-            <td>9</td>
-            <td>0</td>
-            <td>4</td>
-            <td>400</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>顺德印象城商场店</td>
-            <td>华南二区</td>
-            <td>287</td>
-            <td>¥193.2</td>
-            <td>9</td>
-            <td>0</td>
-            <td>4</td>
-            <td>268</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>珠海融德广场店</td>
-            <td>华南二区</td>
-            <td>278</td>
-            <td>¥183.0</td>
-            <td>7</td>
-            <td>1</td>
-            <td>4</td>
-            <td>259</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>惠州佳兆业广场店</td>
-            <td>华南一区</td>
-            <td>306</td>
-            <td>¥196.9</td>
-            <td>9</td>
-            <td>2</td>
-            <td>0</td>
-            <td>278</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>洛阳正大广场店</td>
-            <td>河南区域</td>
-            <td>294</td>
-            <td>¥186.1</td>
-            <td>7</td>
-            <td>1</td>
-            <td>3</td>
-            <td>279</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西安万象城店</td>
-            <td>西北二区</td>
-            <td>851</td>
-            <td>¥613.2</td>
-            <td>11</td>
-            <td>0</td>
-            <td>3</td>
-            <td>819</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>泸州万达广场店</td>
-            <td>四川区域</td>
-            <td>407</td>
-            <td>¥246.2</td>
-            <td>6</td>
-            <td>0</td>
-            <td>5</td>
-            <td>388</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>广安吾悦广场店</td>
-            <td>四川区域</td>
-            <td>398</td>
-            <td>¥256.6</td>
-            <td>10</td>
-            <td>0</td>
-            <td>1</td>
-            <td>380</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>宝鸡新城吾悦广场店</td>
-            <td>西北一区</td>
-            <td>390</td>
-            <td>¥277.0</td>
-            <td>7</td>
-            <td>0</td>
-            <td>2</td>
-            <td>367</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>宝鸡银泰城店</td>
-            <td>西北一区</td>
-            <td>396</td>
-            <td>¥261.3</td>
-            <td>8</td>
-            <td>1</td>
-            <td>5</td>
-            <td>372</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>南充临江万达广场店</td>
-            <td>四川区域</td>
-            <td>313</td>
-            <td>¥176.2</td>
-            <td>8</td>
-            <td>1</td>
-            <td>3</td>
-            <td>295</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>昆明荟聚店</td>
-            <td>云南区域</td>
-            <td>271</td>
-            <td>¥160.1</td>
-            <td>7</td>
-            <td>0</td>
-            <td>2</td>
-            <td>255</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西安西咸吾悦广场店</td>
-            <td>西北二区</td>
-            <td>406</td>
-            <td>¥280.0</td>
-            <td>8</td>
-            <td>0</td>
-            <td>2</td>
-            <td>392</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西安汉神购物广场店</td>
-            <td>西北二区</td>
-            <td>398</td>
-            <td>¥279.0</td>
-            <td>11</td>
-            <td>0</td>
-            <td>4</td>
-            <td>382</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西安荟聚店</td>
-            <td>西北一区</td>
-            <td>571</td>
-            <td>¥351.5</td>
-            <td>11</td>
-            <td>0</td>
-            <td>3</td>
-            <td>558</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>咸阳秦都万达广场店</td>
-            <td>西北二区</td>
-            <td>486</td>
-            <td>¥321.5</td>
-            <td>10</td>
-            <td>0</td>
-            <td>0</td>
-            <td>476</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西安王府井Discovery店</td>
-            <td>西北二区</td>
-            <td>317</td>
-            <td>¥214.5</td>
-            <td>8</td>
-            <td>0</td>
-            <td>0</td>
-            <td>301</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>安阳万达广场店</td>
-            <td>河南区域</td>
-            <td>1,000</td>
-            <td>¥613.1</td>
-            <td>11</td>
-            <td>0</td>
-            <td>3</td>
-            <td>987</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-warning">🟡 低危</span></td>
-            <td>西安盛安广场店</td>
-            <td>西北一区</td>
-            <td>342</td>
-            <td>¥181.0</td>
-            <td>10</td>
-            <td>0</td>
-            <td>2</td>
-            <td>331</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>重庆MSG汇星店</td>
-            <td>重庆区域</td>
-            <td>298</td>
-            <td>¥169.2</td>
-            <td>6</td>
-            <td>0</td>
-            <td>3</td>
-            <td>278</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>西安立丰城市生活广场店</td>
-            <td>西北三区</td>
-            <td>575</td>
-            <td>¥255.2</td>
-            <td>5</td>
-            <td>0</td>
-            <td>3</td>
-            <td>564</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>成都锦宸龙湖天街店</td>
-            <td>四川区域</td>
-            <td>746</td>
-            <td>¥484.7</td>
-            <td>6</td>
-            <td>0</td>
-            <td>4</td>
-            <td>728</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>渭南万达广场店</td>
-            <td>西北二区</td>
-            <td>395</td>
-            <td>¥272.0</td>
-            <td>3</td>
-            <td>0</td>
-            <td>3</td>
-            <td>375</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>绵阳经开万达广场店</td>
-            <td>四川区域</td>
-            <td>403</td>
-            <td>¥249.7</td>
-            <td>6</td>
-            <td>0</td>
-            <td>1</td>
-            <td>385</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>大理泰业国际广场店</td>
-            <td>云南区域</td>
-            <td>222</td>
-            <td>¥144.4</td>
-            <td>5</td>
-            <td>0</td>
-            <td>5</td>
-            <td>201</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>大理爱琴海购物公园店</td>
-            <td>云南区域</td>
-            <td>260</td>
-            <td>¥177.3</td>
-            <td>6</td>
-            <td>0</td>
-            <td>2</td>
-            <td>242</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>榆林万达广场店</td>
-            <td>西北三区</td>
-            <td>461</td>
-            <td>¥334.4</td>
-            <td>5</td>
-            <td>0</td>
-            <td>3</td>
-            <td>443</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>重庆巴南万达广场店</td>
-            <td>重庆区域</td>
-            <td>420</td>
-            <td>¥277.3</td>
-            <td>6</td>
-            <td>0</td>
-            <td>4</td>
-            <td>400</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>内江吾悦广场店</td>
-            <td>四川区域</td>
-            <td>258</td>
-            <td>¥160.0</td>
-            <td>4</td>
-            <td>1</td>
-            <td>3</td>
-            <td>239</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>景洪西双版纳融创茂店</td>
-            <td>云南区域</td>
-            <td>346</td>
-            <td>¥239.7</td>
-            <td>5</td>
-            <td>0</td>
-            <td>3</td>
-            <td>329</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>曲靖美麒麟商业中心店</td>
-            <td>云南区域</td>
-            <td>411</td>
-            <td>¥299.2</td>
-            <td>6</td>
-            <td>0</td>
-            <td>4</td>
-            <td>393</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>贵阳观山湖万达广场店</td>
-            <td>贵州区域</td>
-            <td>257</td>
-            <td>¥156.7</td>
-            <td>6</td>
-            <td>0</td>
-            <td>3</td>
-            <td>242</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-success">🟢 正常</span></td>
-            <td>南阳玉都万达广场店</td>
-            <td>河南区域</td>
-            <td>364</td>
-            <td>¥229.9</td>
-            <td>5</td>
-            <td>1</td>
-            <td>0</td>
-            <td>349</td>
-        </tr>
+        <tr><td>东莞万科城市广场店</td><td>华南二区</td><td>56</td><td>16</td><td>2</td><td>4</td><td>48</td></tr>
+<tr><td>西安赛格国际购物中心店</td><td>西北三区</td><td>82</td><td>23</td><td>2</td><td>9</td><td>47</td></tr>
+<tr><td>西安王府井百货熙地港店</td><td>西北二区</td><td>79</td><td>23</td><td>3</td><td>4</td><td>46</td></tr>
+<tr><td>广州荔湾欢民天地店</td><td>华南二区</td><td>118</td><td>27</td><td>18</td><td>1</td><td>12</td></tr>
+<tr><td>西安大都荟店</td><td>西北一区</td><td>55</td><td>17</td><td>0</td><td>4</td><td>38</td></tr>
+<tr><td>西安城市中心民生大楼店</td><td>西北二区</td><td>103</td><td>22</td><td>15</td><td>7</td><td>21</td></tr>
+<tr><td>成都群光广场店</td><td>四川区域</td><td>61</td><td>18</td><td>0</td><td>7</td><td>49</td></tr>
+<tr><td>成都远大购物中心店</td><td>四川区域</td><td>72</td><td>21</td><td>1</td><td>7</td><td>43</td></tr>
+<tr><td>西安长安万科广场店</td><td>西北三区</td><td>85</td><td>23</td><td>4</td><td>8</td><td>43</td></tr>
+<tr><td>西安万象城店</td><td>西北二区</td><td>59</td><td>15</td><td>3</td><td>8</td><td>63</td></tr>
+
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- 库龄预警 -->
-<div class="section">
-  <h2>库龄预警明细（180天+）</h2>
-  <div class="scroll-table">
-    <table>
-      <thead>
-        <tr>
-          <th>库龄状态</th>
-          <th>型号</th>
-          <th>产品名称</th>
-          <th>品类</th>
-          <th>库存量</th>
-          <th>库存金额(万)</th>
-          <th>库龄天数</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-            <td><span class="tag tag-black">⛔ 2年+ 报废处理</span></td>
-            <td>MTLJ3CH/A</td>
-            <td>苹果 MTLJ3CH/A IPHONE 15 BLACK 256GB-CHN-FY230913</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>983</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-black">⛔ 2年+ 报废处理</span></td>
-            <td>MTLG3CH/A</td>
-            <td>苹果 MTLG3CH/A IPHONE 15 BLUE 128GB-CHN-FY230913</td>
-            <td>手机</td>
-            <td>0</td>
-            <td>¥0.0</td>
-            <td>983</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYF23CH/A</td>
-            <td>苹果 MYF23CH/A IPHONE 16 WHT 256GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.7</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>0</td>
-            <td>¥0.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEV3CH/A</td>
-            <td>苹果 MYEV3CH/A IPHONE 16 BLK 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>2</td>
-            <td>¥1.0</td>
-            <td>617</td>
-        </tr>
-<tr>
-            <td><span class="tag tag-darkred">🚨 1年+ 紧急处理</span></td>
-            <td>MYEW3CH/A</td>
-            <td>苹果 MYEW3CH/A IPHONE 16 WHT 128GB-CHN-CHN-FY240910</td>
-            <td>手机</td>
-            <td>1</td>
-            <td>¥0.5</td>
-            <td>617</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<div style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:20px;">
+  数据来源：串码库龄表 + 零售明细 | 生成时间：2026-06-05 14:38
 </div>
-
-<!-- 不良品仓分析（融合到主看板） -->
-
-<div class="section" style="border-left: 4px solid #ef4444; background: linear-gradient(135deg, rgba(239,68,68,0.06) 0%, var(--card) 50%);">
-  <h2>⚠️ 不良品仓分析（拆箱即损 / 售后退回 / 国补退回）</h2>
-
-  <div class="kpi-row" style="margin-bottom:16px;">
-    <div class="kpi-pill" style="border:1px solid rgba(239,68,68,0.3);"><span class="num" style="color:#ef4444">783</span> 台不良品</div>
-    <div class="kpi-pill" style="border:1px solid rgba(239,68,68,0.3);"><span class="num" style="color:#ef4444">¥558.9万</span> 待消化金额</div>
-    <div class="kpi-pill" style="border:1px solid rgba(239,68,68,0.3);"><span class="num" style="color:#ef4444">119</span> 家门店涉及</div>
-  </div>
-
-  <div style="color:#cbd5e1;font-size:13px;margin-bottom:16px;line-height:1.8;">
-    ⚠️ 不良品仓机器拆开时间越长折价越多，需尽快安排售罄。以下按品类、区域、产品维度拆分，帮助区域经理精准定位问题。
-  </div>
-
-  <!-- 区域级分析（重点） -->
-  <h3 style="font-size:15px;font-weight:600;margin-bottom:10px;color:#e2e8f0;">📊 区域不良品分布（含问题门店提示）</h3>
-  <div style="color:#94a3b8;font-size:12px;margin-bottom:8px;">各区域不良品总数 + 该区域问题最严重的TOP3门店</div>
-  <div class="scroll-table" style="max-height:350px;margin-bottom:20px;">
-    <table>
-      <thead>
-        <tr><th>区域</th><th>不良品数量</th><th>金额</th><th>涉及门店</th><th>问题门店（TOP3）</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>西北一区</td><td>154</td><td>¥93.2万</td><td>8</td><td style="font-size:12px;color:#94a3b8;">西安荟聚店(54台)、西安盛安广场店(23台)、西安际华广场店(21台)</td></tr>
-<tr><td>西北三区</td><td>80</td><td>¥57.5万</td><td>8</td><td style="font-size:12px;color:#94a3b8;">榆林万达广场店(17台)、西安赛格国际购物中心店(16台)、西安立丰城市生活广场店(10台)</td></tr>
-<tr><td>西北二区</td><td>74</td><td>¥57.7万</td><td>10</td><td style="font-size:12px;color:#94a3b8;">西安王府井百货熙地港店(14台)、西安王府井Discovery店(13台)、西安太乙城店(9台)</td></tr>
-<tr><td>华南一区</td><td>64</td><td>¥44.9万</td><td>8</td><td style="font-size:12px;color:#94a3b8;">深圳深业上城店(21台)、深圳坂田天虹购物中心店(16台)、深圳江南时代广场店(12台)</td></tr>
-<tr><td>重庆区域</td><td>61</td><td>¥43.6万</td><td>12</td><td style="font-size:12px;color:#94a3b8;">重庆渝北SKLP店(15台)、重庆巴南万达广场店(9台)、重庆光环购物公园店(9台)</td></tr>
-<tr><td>四川区域</td><td>60</td><td>¥36.2万</td><td>9</td><td style="font-size:12px;color:#94a3b8;">内江吾悦广场店(16台)、成都远大购物中心店(12台)、成都青羊万达广场店(10台)</td></tr>
-<tr><td>河南区域</td><td>52</td><td>¥39.5万</td><td>10</td><td style="font-size:12px;color:#94a3b8;">郑州丹尼斯华强广场店(14台)、郑州信万广场店(8台)、洛阳王府井百货店(7台)</td></tr>
-<tr><td>华南二区</td><td>51</td><td>¥35.7万</td><td>10</td><td style="font-size:12px;color:#94a3b8;">广州荔胜广百广场店(16台)、广州天河欢乐颂店(8台)、东莞万科城市广场店(8台)</td></tr>
-<tr><td>西北六区</td><td>49</td><td>¥39.3万</td><td>8</td><td style="font-size:12px;color:#94a3b8;">乌鲁木齐经开万达店(13台)、乌鲁木齐会展吾悦广场店(8台)、乌鲁木齐天山万科广场店(7台)</td></tr>
-<tr><td>云南区域</td><td>47</td><td>¥39.4万</td><td>13</td><td style="font-size:12px;color:#94a3b8;">昆明和谐广场店(7台)、大理爱琴海购物公园店(7台)、大理泰业国际广场店(6台)</td></tr>
-<tr><td>贵州区域</td><td>45</td><td>¥36.5万</td><td>8</td><td style="font-size:12px;color:#94a3b8;">遵义亨特城市广场店(10台)、遵义国贸购物中心店(8台)、贵阳益田假日世界店(7台)</td></tr>
-<tr><td>西北五区</td><td>30</td><td>¥23.2万</td><td>7</td><td style="font-size:12px;color:#94a3b8;">银川建发阅彩城店(9台)、银川新华联店(6台)、银川金凤万达广场店(6台)</td></tr>
-<tr><td>西北四区</td><td>14</td><td>¥11.6万</td><td>7</td><td style="font-size:12px;color:#94a3b8;">兰州万象城店(5台)、兰州平凉路北京华联购物中心店(2台)、兰州万达茂店(2台)</td></tr>
-<tr><td>APR总部</td><td>2</td><td>¥0.6万</td><td>1</td><td style="font-size:12px;color:#94a3b8;">无(2台)</td></tr>
-
-      </tbody>
-    </table>
-  </div>
-
-  <!-- 品类 + 产品 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-    <div>
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:10px;color:#e2e8f0;">按品类分布</h3>
-      <div class="scroll-table" style="max-height:250px;">
-        <table>
-          <thead><tr><th>品类</th><th>数量</th><th>金额</th></tr></thead>
-          <tbody><tr><td>手机</td><td>480</td><td>¥413.8万</td></tr>
-<tr><td>平板</td><td>145</td><td>¥62.7万</td></tr>
-<tr><td>电脑</td><td>95</td><td>¥63.7万</td></tr>
-<tr><td>手表</td><td>63</td><td>¥18.7万</td></tr>
-</tbody>
-        </table>
-      </div>
-    </div>
-    <div>
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:10px;color:#e2e8f0;">产品明细 TOP10（按金额）</h3>
-      <div class="scroll-table" style="max-height:250px;">
-        <table>
-          <thead><tr><th>产品名称</th><th>数量</th><th>金额</th><th>门店数</th></tr></thead>
-          <tbody><tr><td>苹果 MG034CH/A iPhone 17 Pro Max 256GB 银色-</td><td>84</td><td>¥79.7万</td><td>56</td></tr>
-<tr><td>苹果 MG064CH/A iPhone 17 Pro Max 512GB 银色-</td><td>49</td><td>¥55.8万</td><td>36</td></tr>
-<tr><td>苹果 MG074CH/A iPhone 17 Pro Max 512GB 星宇橙</td><td>36</td><td>¥41.0万</td><td>27</td></tr>
-<tr><td>苹果 MG8T4CH/A iPhone 17 Pro 256GB 银色-2025</td><td>45</td><td>¥38.4万</td><td>31</td></tr>
-<tr><td>苹果 MG8W4CH/A iPhone 17 Pro 512GB 银色-2025</td><td>25</td><td>¥26.1万</td><td>18</td></tr>
-<tr><td>苹果 MG6X4CH/A iPhone 17 256GB 白色-20250910</td><td>29</td><td>¥16.5万</td><td>20</td></tr>
-<tr><td>英迈 MG054CH/A iPhone 17 Pro Max 256GB 深蓝色</td><td>13</td><td>¥11.8万</td><td>11</td></tr>
-<tr><td>英迈 MG704CH/A iPhone 17 256GB 薰衣草紫色-20250</td><td>20</td><td>¥11.5万</td><td>16</td></tr>
-<tr><td>苹果 MG044CH/A iPhone 17 Pro Max 256GB 星宇橙</td><td>12</td><td>¥11.4万</td><td>12</td></tr>
-<tr><td>英迈 MG8V4CH/A iPhone 17 Pro 256GB 深蓝色-202</td><td>14</td><td>¥11.4万</td><td>13</td></tr>
-</tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- 行动建议 -->
-  <div style="margin-top:20px;background:rgba(239,68,68,0.08);border-radius:8px;padding:14px;line-height:1.9;color:#cbd5e1;font-size:13px;">
-    <strong style="color:#fca5a5;">⚡ 本周行动建议：</strong><br>
-    1. 各区域经理核对不良品清单，确认可售状态<br>
-    2. 优先处理金额高、库龄久的不良品（折价风险最大）<br>
-    3. 与售后部门协同，确认不良品具体原因和可售性<br>
-    4. 制定本周消化目标：至少消化156台
-  </div>
-</div>
-
-
-<script>
-// WOS分布饼图
-new Chart(document.getElementById('wosChart'), {
-  type: 'doughnut',
-  data: {
-    labels: ['🟢 健康', '🔴 缺货风险', '⚪ 零销待关注', '⚪ 低值正常', '🟡 关注', '🔴 积压风险', '⚪ 低值缺货', '🔴 零销积压'],
-    datasets: [{
-      data: [5738, 1162, 859, 530, 379, 176, 109, 98],
-      backgroundColor: [
-        '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#ef4444', '#ef4444', '#64748b', '#64748b'
-      ],
-      borderWidth: 0
-    }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }
-  }
-});
-
-// 品类库存柱状图
-new Chart(document.getElementById('categoryChart'), {
-  type: 'bar',
-  data: {
-    labels: ['平板', '手机', '手表', '电脑'],
-    datasets: [
-      {
-        label: '库存量(台)',
-        data: [10378, 38915, 8436, 1779],
-        backgroundColor: '#3b82f6',
-        yAxisID: 'y'
-      },
-      {
-        label: '库存金额(万)',
-        data: [4290.0, 31007.8, 2396.7, 1284.3],
-        backgroundColor: '#22c55e',
-        yAxisID: 'y1'
-      }
-    ]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    scales: {
-      y: { type: 'linear', display: true, position: 'left', grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-      y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#94a3b8' } },
-      x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-    },
-    plugins: { legend: { labels: { color: '#94a3b8' } } }
-  }
-});
-
-// 门店风险分布
-new Chart(document.getElementById('storeRiskChart'), {
-  type: 'bar',
-  data: {
-    labels: ['高危', '中危', '低危', '正常'],
-    datasets: [{
-      label: '门店数',
-      data: [
-        18,
-        40,
-        56,
-        14
-      ],
-      backgroundColor: ['#ef4444', '#f59e0b', '#eab308', '#22c55e'],
-      borderRadius: 6
-    }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    indexAxis: 'y',
-    scales: {
-      x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-      y: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-    },
-    plugins: { legend: { display: false } }
-  }
-});
-
-// 库龄分布
-new Chart(document.getElementById('agingChart'), {
-  type: 'pie',
-  data: {
-    labels: ['⚠️ 60天+ 关注', '⛔ 2年+ 报废处理', '🔴 180天+ 高风险', '🚨 1年+ 紧急处理'],
-    datasets: [{
-      data: [2392, 1, 46443, 10672],
-      backgroundColor: ['#22c55e', '#f59e0b', '#ef4444', '#991b1b', '#000000'],
-      borderWidth: 0
-    }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }
-  }
-});
-</script>
 
 </body>
 </html>
